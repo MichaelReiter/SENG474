@@ -19,25 +19,23 @@ class MyBayesClassifier():
         self._feature_counts = {}
 
     def classifier_probabilities(self, y):
-        return [float(self.occurrences_of_element(element, y)) / len(y) for element in range(self._number_of_classifiers)]
+        return [float(self.occurrences_of_classifier(classifier, y)) / len(y) for classifier in range(self._number_of_classifiers)]
 
     def number_of_unique_elements(self, x):
         return len(set(x))
 
-    def occurrences_of_element(self, element, y):
+    def occurrences_of_classifier(self, classifier, y):
         count = 0
         for i in y:
-            if i == element:
+            if i == classifier:
                 count += 1
         return count
 
     def p_of_feature_given_classifier(self, feature, classifier):
         # times it was feature x and classifier y
         occurrences_of_feature = self._feature_counts[classifier].get(feature, 0)
-
         # all times it was classifier y
         occurrences_of_all_features = sum(self._feature_counts[classifier].values())
-
         # P(feature|classifier) = P(feature and classifier) / P(classifier)
         return occurrences_of_feature / occurrences_of_all_features
 
@@ -61,31 +59,20 @@ class MyBayesClassifier():
 
 
     def predict(self, X):
-        # This is just a place holder so that the code still runs.
-        # Your code goes here.
+        score = 0
+        prediction = None
+
+        # outer loop is argmax
+        for classifier in range(_number_of_classifiers):
+            # bayes = P(y)
+            bayes = p_of_classifier(classifier)
+            for row in X:    
+                for feature in row:
+                    bayes *= p_of_feature_given_classifier(feature, classifier)
+
+
+
         return np.zeros([X.shape[0],1])
-
-class MyMultinomialBayesClassifier():
-    # For graduate students only
-    def __init__(self, smooth=1):
-        self._smooth = smooth # This is for add one smoothing, don't forget!
-        self._feature_probabilities = []
-        self._classifier_probabilities = []
-        self._number_of_classifiers = []
-        self._number_of_features = []
-
-    # Train the classifier using features in X and class labels in Y
-    def train(self, X, y):
-        # Your code goes here.
-        return
-
-    # should return an array of predictions, one for each row in X
-    def predict(self, X):
-        # This is just a place holder so that the code still runs.
-        # Your code goes here.
-        return np.zeros([X.shape[0],1])
-        
-
 
 """ 
 Here is the calling code

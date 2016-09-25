@@ -11,16 +11,36 @@ from time import time
 
 class MyBayesClassifier():
     # For graduate and undergraduate students to implement Bernoulli Bayes
+    # def __init__(self, smooth=1):
+    #     self._smooth = smooth # This is for add one smoothing, don't forget!
+    #     self._feat_prob = []
+    #     self._class_prob = []
+    #     self._Ncls = []
+    #     self._Nfeat = []
+
     def __init__(self, smooth=1):
-        self._smooth = smooth # This is for add one smoothing, don't forget!
+        self._smooth = smooth
         self._feat_prob = []
         self._class_prob = []
         self._Ncls = []
         self._Nfeat = []
 
+    def classifier_probabilities(self, y):
+        return [float(self.occurrences_of_element(element, y)) / len(y) for element in y]
+
+    def number_of_unique_elements(self, x):
+        return len(set(x))
+
+    def occurrences_of_element(self, element, y):
+        count = 0
+        for i in y:
+            if i == element:
+                count += 1
+        return count
+
     def train(self, X, y):
-        # Your code goes here.
-        return 
+        print self.classifier_probabilities(y)
+        return
 
     def predict(self, X):
         # This is just a place holder so that the code still runs.

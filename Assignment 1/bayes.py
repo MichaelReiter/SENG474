@@ -14,8 +14,8 @@ class MyBayesClassifier():
         self._smooth = smooth
         self._feature_probabilities = []
         self._classifier_probabilities = []
-        self._number_of_classifiers = []
-        self._number_of_features = []
+        self._number_of_classifiers = 0
+        self._number_of_features = 0
         self._feature_counts = {}
 
     def classifier_probabilities(self, y):
@@ -33,9 +33,9 @@ class MyBayesClassifier():
 
     def p_of_feature_given_classifier(self, feature, classifier):
         # times it was feature x and classifier y
-        occurrences_of_feature = self._feature_counts[classifier].get(feature, 0)
+        occurrences_of_feature = self._feature_counts[classifier][feature]
         # all times it was classifier y
-        occurrences_of_all_features = sum(self._feature_counts[classifier].values())
+        occurrences_of_all_features = sum(self._feature_counts[classifier])
         # P(feature|classifier) = P(feature and classifier) / P(classifier)
         return occurrences_of_feature / occurrences_of_all_features
 
@@ -55,24 +55,28 @@ class MyBayesClassifier():
             for feature in range(len(row)):
                 self._feature_counts[classifier][feature] += float(row[feature])
 
-
-
-
     def predict(self, X):
-        score = 0
-        prediction = None
+        prediction = [0] * len(X)
 
-        # outer loop is argmax
-        for classifier in range(_number_of_classifiers):
-            # bayes = P(y)
-            bayes = p_of_classifier(classifier)
-            for row in X:    
+        for i, row in enumerate(X):
+            max_score = -1
+            classification = None
+
+            # argmax
+            for classifier in range(self._number_of_classifiers):
+                
+                # bayes = P(y)
+                bayes = self.p_of_classifier(classifier)
                 for feature in row:
-                    bayes *= p_of_feature_given_classifier(feature, classifier)
+                    bayes *= self.p_of_feature_given_classifier(feature, classifier)
+                
+                if bayes > max_score:
+                    max_score = bayes
+                    classification = classifier
 
+            prediction[i] = classification
 
-
-        return np.zeros([X.shape[0],1])
+        return prediction
 
 """ 
 Here is the calling code

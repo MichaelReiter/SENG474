@@ -8,18 +8,18 @@ import logging
 import sys
 from time import time
 
-
 class MyBayesClassifier():
     # For graduate and undergraduate students to implement Bernoulli Bayes
     def __init__(self, smooth=1):
         self._smooth = smooth
-        self._feat_prob = []
-        self._class_prob = []
-        self._Ncls = []
-        self._Nfeat = []
+        self._feature_probabilities = []
+        self._classifier_probabilities = []
+        self._number_of_classifiers = []
+        self._number_of_features = []
+        self._feature_counts = {}
 
     def classifier_probabilities(self, y):
-        return [float(self.occurrences_of_element(element, y)) / len(y) for element in range(self._Ncls)]
+        return [float(self.occurrences_of_element(element, y)) / len(y) for element in range(self._number_of_classifiers)]
 
     def number_of_unique_elements(self, x):
         return len(set(x))
@@ -31,20 +31,34 @@ class MyBayesClassifier():
                 count += 1
         return count
 
-    def p_of_x_given_y(self, x, y):
-        return p_of_x_and_y(x, y) / p_of_y(y)
+    def p_of_feature_given_classifier(self, feature, classifier):
+        # times it was feature x and classifier y
+        occurrences_of_feature = self._feature_counts[classifier].get(feature, 0)
 
-    def p_of_x_and_y(self, x, y):
-        return 0
+        # all times it was classifier y
+        occurrences_of_all_features = sum(self._feature_counts[classifier].values())
 
-    def p_of_y(self, y):
-        return self._class_prob[y]
+        # P(feature|classifier) = P(feature and classifier) / P(classifier)
+        return occurrences_of_feature / occurrences_of_all_features
+
+    def p_of_classifier(self, classifier):
+        return self._classifier_probabilities[classifier]
 
     def train(self, X, y):
-        self._Ncls = self.number_of_unique_elements(y)
-        self._Nfeat = len(X[0])
-        self._class_prob = self.classifier_probabilities(y)
-        self._feat_prob = [0] * self._Nfeat
+        self._number_of_classifiers = self.number_of_unique_elements(y)
+        self._number_of_features = len(X[0])
+        self._classifier_probabilities = self.classifier_probabilities(y)
+        self._feature_probabilities = [0] * self._number_of_features
+        
+        for classifier in range(self._number_of_classifiers):
+            self._feature_counts[classifier] = [0] * self._number_of_features
+
+        for row, classifier in zip(X, y):
+            for feature in range(len(row)):
+                self._feature_counts[classifier][feature] += float(row[feature])
+
+
+
 
     def predict(self, X):
         # This is just a place holder so that the code still runs.
@@ -55,10 +69,10 @@ class MyMultinomialBayesClassifier():
     # For graduate students only
     def __init__(self, smooth=1):
         self._smooth = smooth # This is for add one smoothing, don't forget!
-        self._feat_prob = []
-        self._class_prob = []
-        self._Ncls = []
-        self._Nfeat = []
+        self._feature_probabilities = []
+        self._classifier_probabilities = []
+        self._number_of_classifiers = []
+        self._number_of_features = []
 
     # Train the classifier using features in X and class labels in Y
     def train(self, X, y):

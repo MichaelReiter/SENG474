@@ -7,10 +7,10 @@ from sklearn.datasets import fetch_20newsgroups
 import logging
 import sys
 from time import time
-from math import exp, log
+from math import log
 
 class MyBayesClassifier():
-    def __init__(self, smooth=1):
+    def __init__(self, smooth=1.0):
         self._smooth = smooth
         self._all_labels = []
         self._feature_counts = {}
@@ -18,25 +18,34 @@ class MyBayesClassifier():
         self._label_and_feature_counts = {}
         self._length_of_training_set = 0.0
 
+    # compute P(label)
+    def p_of_label(self, label):
+        count_of_label = self._label_counts[label] + self._smooth
+        count_of_rows = self._length_of_training_set + (self._smooth * len(self._all_labels))
+        return count_of_label / count_of_rows
+
+    # compute P(feature)
     def p_of_feature(self, feature):
         return self._feature_counts[feature] / self._length_of_training_set
 
+    # compute P(feature|label)
     def p_of_feature_given_label(self, feature, label):
-        count_of_label_and_feature = self._label_and_feature_counts[label][feature]
-        count_of_label = self._label_counts[label]
+        count_of_label_and_feature = self._label_and_feature_counts[label][feature] + self._smooth
+        count_of_label = self._label_counts[label] + (self._smooth * 2.0)
         return count_of_label_and_feature / count_of_label
 
-    def bayes(self, row, label):
-        total = self._label_counts[label] / self._length_of_training_set
+    # compute P(label|row of features)
+    def p_of_label_given_row(self, row, label):
+        total = log(self.p_of_label(label))
         for feature in range(len(row)):
-            p = (self.p_of_feature_given_label(feature, label) / self.p_of_feature(feature) * row[feature]) + self._smooth
-            total *= p
-        return total / (self.p_of_feature(feature) + 2.0)
+            probability = self.p_of_feature_given_label(feature, label)
+            total += log(probability) * row[feature]
+        return total
 
+    # Initialize class variables then count feature and label information
     def train(self, X, y):
-        # Initialize class variables
         self._all_labels = set(y)
-        self._length_of_training_set = len(y)
+        self._length_of_training_set = float(len(X))
 
         for feature in range(len(X[0])):
             self._feature_counts[feature] = 0.0
@@ -45,32 +54,32 @@ class MyBayesClassifier():
             self._label_counts[label] = 0.0
             self._label_and_feature_counts[label] = {}
 
-        # Count feature and label information
         for row, label in zip(X, y):
             self._label_counts[label] += 1.0
             for feature in range(len(row)):
                 self._feature_counts[feature] += float(row[feature])
                 if feature not in self._label_and_feature_counts[label]:
                     self._label_and_feature_counts[label][feature] = 0.0
-                self._label_and_feature_counts[label][feature] += row[feature]
+                self._label_and_feature_counts[label][feature] += float(row[feature])
 
+    # Return an array of classifications corresponding to the test set
     def predict(self, X):
-        result = []
+        result = [0] * len(X)
 
-        for row in X:
-            best_probability = 0.0
-            classification = None
+        # Argmax
+        for i, row in enumerate(X):
+            best_probability = -float('inf')
+            classified_label = None
 
+            # Apply Bayes theorem
             for label in self._all_labels:
-                p_of_label_given_row = self.bayes(row, label)
-                print p_of_label_given_row
-                if p_of_label_given_row > best_probability:
-                    best_probability = p_of_label_given_row
-                    classification = label
+                bayes = self.p_of_label_given_row(row, label)
+                if bayes > best_probability:
+                    best_probability = bayes
+                    classified_label = label
 
-            result.append(classification)
+            result[i] = classified_label
 
-        print result
         return result
 
 """
@@ -100,7 +109,6 @@ y_train, y_test = data_train.target, data_test.target
 print("Extracting features from the training data using a count vectorizer")
 t0 = time()
 
-# , analyzer='char', ngram_range=(1,3))
 vectorizer = CountVectorizer(stop_words='english', binary=True)
 
 X_train = vectorizer.fit_transform(data_train.data).toarray()
@@ -110,6 +118,5 @@ feature_names = vectorizer.get_feature_names()
 alpha = 1
 clf = MyBayesClassifier(alpha)
 clf.train(X_train, y_train)
-print X_test
 y_pred = clf.predict(X_test)
 print 'alpha=%i accuracy = %f' % (alpha, np.mean((y_test-y_pred) == 0))

@@ -16,7 +16,6 @@ class MyBayesClassifier():
     def __init__(self, smooth=1.0):
         self._smooth = smooth
         self._all_labels = []
-        self._feature_counts = {}
         self._label_counts = {}
         self._label_and_feature_counts = {}
         self._length_of_training_set = 0.0
@@ -26,10 +25,6 @@ class MyBayesClassifier():
         count_of_label = self._label_counts[label] + self._smooth
         count_of_rows = self._length_of_training_set + (self._smooth * len(self._all_labels))
         return count_of_label / count_of_rows
-
-    # compute P(feature)
-    def p_of_feature(self, feature):
-        return self._feature_counts[feature] / self._length_of_training_set
 
     # compute P(feature|label)
     def p_of_feature_given_label(self, feature, label):
@@ -50,9 +45,6 @@ class MyBayesClassifier():
         self._all_labels = set(y)
         self._length_of_training_set = float(len(X))
 
-        for feature in range(len(X[0])):
-            self._feature_counts[feature] = 0.0
-
         for label in self._all_labels:
             self._label_counts[label] = 0.0
             self._label_and_feature_counts[label] = {}
@@ -60,7 +52,6 @@ class MyBayesClassifier():
         for row, label in zip(X, y):
             self._label_counts[label] += 1.0
             for feature in range(len(row)):
-                self._feature_counts[feature] += float(row[feature])
                 if feature not in self._label_and_feature_counts[label]:
                     self._label_and_feature_counts[label][feature] = 0.0
                 self._label_and_feature_counts[label][feature] += float(row[feature])

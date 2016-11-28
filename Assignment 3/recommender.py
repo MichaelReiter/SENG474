@@ -3,6 +3,7 @@
 import scipy.stats as scistats
 import pickle
 import numpy as np
+import math
 from sklearn.feature_extraction.text import CountVectorizer
 
 # This helpful method will print the jokes for you
@@ -27,7 +28,7 @@ idx = np.arange(len(jokes))
 # to see how to use the calculated numbers
 d_user_user = np.zeros([data_test.shape[0],data_train.shape[0]])
 d_item_item = np.zeros([data_train.shape[1],data_train.shape[1]])
-	
+
 # These calculations take a while, so you might want to save the matrices
 # and load them each time instead of computing from scratch.
 for i in range(data_test.shape[0]):
@@ -55,9 +56,43 @@ for i in range(data_train.shape[1]):
 # You can use this mask to select for rated or unrated jokes
 d_mask = (data_test == 0)
 
+def predict_user_user_rating(u, i, ratings, similarity):
+    numerator = 0
+    denominator = 0
+    for v in range(len(ratings)):
+        if ratings[v][i] > 0:
+            numerator += (ratings[v][i] * similarity[v][u])
+            denominator += similarity[v][u]
+
+    return float(numerator) / float(denominator)
+
+def predict_item_item_rating(u, i, ratings, similarity):
+    numerator = 0
+    denominator = 0
+    for j in range(len(ratings[u])):
+        if j > 0:
+            numerator += (ratings[u][j] * similarity[i][j])
+            denominator += similarity[i][j]
+
+    return float(numerator) / float(denominator)
+
+def get_user_user_root_mean_squared_error(ratings, similarity):
+    numerator = 0
+    denominator = 0
+    for u in range(len(ratings)):
+        for rating_actual in len(range(data_test)):
+            if rating_actual > 0:
+                rating_predicted = predict_user_user_rating(u, i, ratings, similarity)
+                numerator += ((rating_actual - rating_predicted) ** 2)
+                denominator += 1
+
+    return math.sqrt(float(numerator) / float(denominator))
+
 # ------------------- user user --------------------- #
 print "\n*******User User similarity*******"
 rmse = 0
+rmse = get_user_user_root_mean_squared_error(data_test, d_user_user)
+
 for u in range(data_test.shape[0]):
 	joke_rec = 0 #Replace this with the index of your recommended joke from those jokes with **zero** ratings
 	print "Test instance "+str(u)+"Recommend joke: "+str(joke_rec)
@@ -73,7 +108,7 @@ for u in range(data_test.shape[0]):
 
 print "RMSE for all predictions: " + str(rmse)
 
-
+'''
 # ------- Clustering question  -------- #
 N_clusters = 10
 # ------- jokes clustering based on user votes  -------- #
@@ -114,3 +149,4 @@ vectorizer = CountVectorizer(stop_words='english',
 jokes_cluster = np.random.randint(low=N_clusters,size=data_train.shape[1])
 print_jokes(jokes_cluster, 3)
 print jokes_cluster
+'''

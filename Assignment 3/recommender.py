@@ -62,12 +62,11 @@ def predict_user_user_rating(u, i, ratings, similarity):
     # for each user v
     for v in range(ratings.shape[0]):
         # if user v rated item i and u is not v
-        if u == v:
-            continue
-        if ratings[v][i] > 0:
+        if ratings[v][i] > 0 and u != v:
             numerator += (ratings[v][i] * similarity[u][v])
             denominator += similarity[u][v]
 
+    # return 0 if no user has rated joke i
     if denominator == 0:
         return 0
     else:
@@ -88,31 +87,17 @@ def get_user_user_root_mean_squared_error(ratings, similarity):
 
     return math.sqrt(float(numerator) / float(denominator))
 
-# numerator = 0.0
-# denominator = 0.0
-# for j in range(len(ratings[u])):
-#     if j > 0:
-#         numerator += (ratings[u][j] * similarity[i][j])
-#         denominator += similarity[i][j]
-
-# return float(numerator) / float(denominator)
-
 def predict_item_item_rating(u, i, ratings, similarity):
     numerator = 0
     denominator = 0
-    # for each user v
+    # for each joke j
     for j in range(ratings.shape[1]):
-        # if i is not j and joke j was rated
-        if i == j:
-            continue
-        if ratings[u][j] > 0:
+        # if joke j was rated and i is not j
+        if ratings[u][j] > 0 and i != j:
             numerator += (ratings[u][j] * similarity[i][j])
             denominator += similarity[i][j]
 
-    if denominator == 0:
-        return 0
-    else:
-        return float(numerator) / float(denominator)
+    return float(numerator) / float(denominator)
 
 def get_item_item_root_mean_squared_error(ratings, similarity):
     numerator = 0
@@ -131,13 +116,12 @@ def get_item_item_root_mean_squared_error(ratings, similarity):
 
 # ------------------- user user --------------------- #
 print "\n*******User User similarity*******"
-# for each user u
 rmse = get_user_user_root_mean_squared_error(data_test, d_user_user)
 for u in range(data_test.shape[0]):
     joke_rec = 0
     best_rating = 0
-    # for each joke
     for joke in range(data_test.shape[1]):
+        # if the joke is unrated
         if data_test[u][joke] == 0:
             prediction = predict_user_user_rating(u, joke, data_test, d_user_user)
             if prediction > best_rating:
@@ -154,8 +138,8 @@ rmse = get_item_item_root_mean_squared_error(data_test, d_item_item)
 for u in range(data_test.shape[0]):
     joke_rec = 0
     best_rating = 0
-    # for each joke
     for joke in range(data_test.shape[1]):
+        # if the joke is unrated
         if data_test[u][joke] == 0:
             prediction = predict_item_item_rating(u, joke, data_test, d_item_item)
             if prediction > best_rating:

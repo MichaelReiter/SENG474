@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 class MyLinearRegressor():
-
     def __init__(self, kappa=0.01, lamb=0, max_iter=200, opt='batch'):
         self._kappa = kappa
         self._lamb = lamb
@@ -21,23 +20,27 @@ class MyLinearRegressor():
         elif self._opt == 'batch':
             error = self.__batch_gradient_descent(X, y)
         else:
-            print 'unknow opt'
+            print 'unknown opt'
         return error
 
     def predict(self, X):
-        pass
+        return np.dot(X, self._w)
 
     def __batch_gradient_descent(self, X, y):
         N, M = X.shape
-        niter = 0
-        error = []
+        error_vector = [0] * self._max_iter
         self._w = np.ones(X.shape[1])
-        ##############################
-        #
-        #  put your code here
-        #
-        ##############################
-        return error
+
+        for i in range(self._max_iter):
+            gradient = 0
+            error = 0
+            for k in range(N):
+                error += (y[k] - np.dot(self._w, X[k]))
+                gradient += (X[k] * error)
+            self._w = self._w + self._kappa * (1/N) * gradient
+            error_vector[i] = error
+
+        return error_vector
 
     def __stochastic_gradient_descent(self, X, y):
         N, M = X.shape
@@ -71,8 +74,9 @@ class MyLinearRegressor():
 
 if __name__ == '__main__':
     from sklearn.datasets import load_boston
-
     data = load_boston()
     X, y = data['data'], data['target']
     mylinreg = MyLinearRegressor()
-    mylinreg.fit(X, y)
+    error = mylinreg.fit(X, y)
+    plt.plot(error)
+    plt.show()

@@ -32,25 +32,25 @@ d_item_item = np.zeros([data_train.shape[1],data_train.shape[1]])
 # These calculations take a while, so you might want to save the matrices
 # and load them each time instead of computing from scratch.
 for i in range(data_test.shape[0]):
-	ri = data_test[i]
-	for j in range(data_train.shape[0]):
-		rj = data_train[j]
-		# use elements for which both users have given ratings
-		inds = np.logical_and(ri != 0, rj != 0)
-		# some users gave the same rating to all jokes :(
-		if np.std(ri[inds])==0 or np.std(rj[inds])==0:
-			continue
-		d_user_user[i,j] = scistats.pearsonr(ri[inds],rj[inds])[0]
+    ri = data_test[i]
+    for j in range(data_train.shape[0]):
+        rj = data_train[j]
+        # use elements for which both users have given ratings
+        inds = np.logical_and(ri != 0, rj != 0)
+        # some users gave the same rating to all jokes :(
+        if np.std(ri[inds])==0 or np.std(rj[inds])==0:
+            continue
+        d_user_user[i,j] = scistats.pearsonr(ri[inds],rj[inds])[0]
 
 for i in range(data_train.shape[1]):
-	ri = data_train[:,i]
-	d_item_item[i,i] = 1
-	for j in range(i+1, data_train.shape[1]):
-		rj = data_train[:,j]
-		# consider only those users who have given ratings
-		inds = np.logical_and(ri != 0, rj != 0)
-		d_item_item[i,j] = scistats.pearsonr(ri[inds],rj[inds])[0]
-		d_item_item[j,i] = d_item_item[i,j]
+    ri = data_train[:,i]
+    d_item_item[i,i] = 1
+    for j in range(i+1, data_train.shape[1]):
+        rj = data_train[:,j]
+        # consider only those users who have given ratings
+        inds = np.logical_and(ri != 0, rj != 0)
+        d_item_item[i,j] = scistats.pearsonr(ri[inds],rj[inds])[0]
+        d_item_item[j,i] = d_item_item[i,j]
 
 # If the rating is 0, then the user has not rated that item
 # You can use this mask to select for rated or unrated jokes
@@ -59,30 +59,71 @@ d_mask = (data_test == 0)
 def predict_user_user_rating(u, i, ratings, similarity):
     numerator = 0
     denominator = 0
-    for v in range(len(ratings)):
+    # for each user v
+    for v in range(ratings.shape[0]):
+        # if user v rated item i and u is not v
+        if u == v:
+            continue
         if ratings[v][i] > 0:
-            numerator += (ratings[v][i] * similarity[v][u])
-            denominator += similarity[v][u]
+            numerator += (ratings[v][i] * similarity[u][v])
+            denominator += similarity[u][v]
 
-    return float(numerator) / float(denominator)
-
-def predict_item_item_rating(u, i, ratings, similarity):
-    numerator = 0
-    denominator = 0
-    for j in range(len(ratings[u])):
-        if j > 0:
-            numerator += (ratings[u][j] * similarity[i][j])
-            denominator += similarity[i][j]
-
-    return float(numerator) / float(denominator)
+    if denominator == 0:
+        return 0
+    else:
+        return float(numerator) / float(denominator)
 
 def get_user_user_root_mean_squared_error(ratings, similarity):
     numerator = 0
     denominator = 0
-    for u in range(len(ratings)):
-        for rating_actual in len(range(data_test)):
+    # for each user u
+    for u in range(ratings.shape[0]):
+        for joke in range(ratings.shape[1]):
+            rating_actual = ratings[u][joke]
+            # if it was rated
             if rating_actual > 0:
-                rating_predicted = predict_user_user_rating(u, i, ratings, similarity)
+                rating_predicted = predict_user_user_rating(u, joke, ratings, similarity)
+                numerator += ((rating_actual - rating_predicted) ** 2)
+                denominator += 1
+
+    return math.sqrt(float(numerator) / float(denominator))
+
+# numerator = 0.0
+# denominator = 0.0
+# for j in range(len(ratings[u])):
+#     if j > 0:
+#         numerator += (ratings[u][j] * similarity[i][j])
+#         denominator += similarity[i][j]
+
+# return float(numerator) / float(denominator)
+
+def predict_item_item_rating(u, i, ratings, similarity):
+    numerator = 0
+    denominator = 0
+    # for each user v
+    for j in range(ratings.shape[1]):
+        # if i is not j and joke j was rated
+        if i == j:
+            continue
+        if ratings[u][j] > 0:
+            numerator += (ratings[u][j] * similarity[i][j])
+            denominator += similarity[i][j]
+
+    if denominator == 0:
+        return 0
+    else:
+        return float(numerator) / float(denominator)
+
+def get_item_item_root_mean_squared_error(ratings, similarity):
+    numerator = 0
+    denominator = 0
+    # for each user u
+    for u in range(ratings.shape[0]):
+        for joke in range(ratings.shape[1]):
+            rating_actual = ratings[u][joke]
+            # if it was rated
+            if rating_actual > 0:
+                rating_predicted = predict_item_item_rating(u, joke, ratings, similarity)
                 numerator += ((rating_actual - rating_predicted) ** 2)
                 denominator += 1
 
@@ -90,23 +131,40 @@ def get_user_user_root_mean_squared_error(ratings, similarity):
 
 # ------------------- user user --------------------- #
 print "\n*******User User similarity*******"
-rmse = 0
+# for each user u
 rmse = get_user_user_root_mean_squared_error(data_test, d_user_user)
-
 for u in range(data_test.shape[0]):
-	joke_rec = 0 #Replace this with the index of your recommended joke from those jokes with **zero** ratings
-	print "Test instance "+str(u)+"Recommend joke: "+str(joke_rec)
+    joke_rec = 0
+    best_rating = 0
+    # for each joke
+    for joke in range(data_test.shape[1]):
+        if data_test[u][joke] == 0:
+            prediction = predict_user_user_rating(u, joke, data_test, d_user_user)
+            if prediction > best_rating:
+                best_rating = prediction
+                joke_rec = joke
 
-print "RMSE for all predictions: " + str(rmse)
+    print "Test instance", str(u), "Recommend joke:", str(joke_rec)
+
+print "RMSE for all predictions:", str(rmse)
 
 # ------------------ item item ----------------------- #
 print "\n*******Item Item similarity*******"
-rmse = 0
+rmse = get_item_item_root_mean_squared_error(data_test, d_item_item)
 for u in range(data_test.shape[0]):
-	joke_rec = 0 #Replace this with the index of your recommended joke from those jokes with **zero** ratings
-	print "Test instance "+str(u)+"Recommend joke: "+str(joke_rec)
+    joke_rec = 0
+    best_rating = 0
+    # for each joke
+    for joke in range(data_test.shape[1]):
+        if data_test[u][joke] == 0:
+            prediction = predict_item_item_rating(u, joke, data_test, d_item_item)
+            if prediction > best_rating:
+                best_rating = prediction
+                joke_rec = joke
 
-print "RMSE for all predictions: " + str(rmse)
+    print "Test instance", str(u), "Recommend joke:", str(joke_rec)
+
+print "RMSE for all predictions:", str(rmse)
 
 '''
 # ------- Clustering question  -------- #
@@ -134,9 +192,9 @@ print "\n*******Clustering based on text similarity*******"
 # Use the following vectorizer to turn the text of the jokes
 # into vectors that can be clustered
 vectorizer = CountVectorizer(stop_words='english',
-							max_df=0.95,
+                            max_df=0.95,
                             min_df=0.05,
-                        	analyzer='char',
+                            analyzer='char',
                             ngram_range = [2,5], binary=True)
 ####################################
 # put your code here

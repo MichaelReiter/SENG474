@@ -28,31 +28,42 @@ class MyLinearRegressor():
 
     def __batch_gradient_descent(self, X, y):
         N, M = X.shape
-        error_vector = [0] * self._max_iter
+        cost_vector = np.zeros(self._max_iter)
         self._w = np.ones(X.shape[1])
 
         for i in range(self._max_iter):
-            gradient = 0
-            error = 0
-            for k in range(N):
-                error += (y[k] - np.dot(self._w, X[k]))
-                gradient += (X[k] * error)
-            self._w = self._w + self._kappa * (1/N) * gradient
-            error_vector[i] = error
+            y_hat = X.dot(self._w)
+            diff = y - y_hat
+            gradient = (1.0/N) * np.transpose(X).dot(diff)
+            self._w = self._w + (self._kappa * gradient)
+            sse = 0
+            for e in diff:
+                sse += float(e ** 2) / N
+            cost_vector[i] = sse
 
-        return error_vector
+        plt.plot(cost_vector)
+        plt.show()
+        return cost_vector
 
     def __stochastic_gradient_descent(self, X, y):
         N, M = X.shape
-        niter = 0
-        error = []
+        cost_vector = np.zeros(N)
         self._w = np.ones(X.shape[1])
-        ##############################
-        #
-        #  put your code here
-        #
-        ##############################
-        return error
+
+        for epoch in range(N):
+            epoch_loss = np.zeros(self._max_iter)
+            for i in range(self._max_iter):
+                Xi = X[i % N]
+                y_hat = Xi.dot(self._w)
+                diff = y[i % N] - y_hat
+                gradient = (1.0/N) * np.transpose(Xi).dot(diff)
+                self._w = self._w + (self._kappa * gradient)
+                epoch_loss[i] = diff ** 2
+            cost_vector[epoch] = np.average(epoch_loss)
+
+        plt.plot(cost_vector)
+        plt.show()
+        return cost_vector
 
     def __total_error(self, X, y, w):
         tl = 0.5 * np.sum((np.dot(X, w) - y)**2)/len(y)
@@ -76,7 +87,5 @@ if __name__ == '__main__':
     from sklearn.datasets import load_boston
     data = load_boston()
     X, y = data['data'], data['target']
-    mylinreg = MyLinearRegressor()
-    error = mylinreg.fit(X, y)
-    plt.plot(error)
-    plt.show()
+    mylinreg = MyLinearRegressor(max_iter=100, opt='sgd')
+    mylinreg.fit(X, y)
